@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>寫作工作室</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;700&family=Noto+Sans+TC:wght@300;400;500&family=Playfair+Display:ital,wght@0,700;1,400&display=swap');
+
+:root {
+  --ink: #1a1410;
+  --paper: #f5f0e8;
+  --paper-warm: #ede7d9;
+  --accent: #8b4513;
+  --accent-light: #c4956a;
+  --accent-faint: #f0e6d8;
+  --sidebar-bg: #2c2420;
+  --sidebar-text: #c8b89a;
+  --sidebar-hover: #3d3028;
+  --border: #d4c4a8;
+  --muted: #8a7a68;
+  --success: #27ae60;
+  --shadow: rgba(26,20,16,0.15);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Noto Sans TC', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+/* ══ SIDEBAR OVERLAY ══ */
+#sidebar-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  opacity: 0;
+  transition: opacity 0.28s;
+}
+#sidebar-overlay.open { opacity: 1; pointer-events: all; }
+
+/* ══ SIDEBAR ══ */
+#sidebar {
+  width: 260px;
+  min-width: 260px;
+  background: var(--sidebar-bg);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #3d3028;
+  z-index: 210;
+  transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+  flex-shrink: 0;
+}
+#sidebar-header { padding: 20px 16px 14px; border-bottom: 1px solid #3d3028; flex-shrink:0; }
+#app-title { font-family:'Playfair Display',serif; font-size:22px; color:#e8d5b7; font-style:italic; letter-spacing:1px; margin-bottom:2px; }
+#app-subtitle { font-size:10px; color:var(--sidebar-text); letter-spacing:3px; text-transform:uppercase; opacity:0.6; }
+#sidebar-actions { padding:10px; display:flex; gap:6px; flex-direction:column; flex-shrink:0; }
+#sidebar-nav { flex:1; overflow-y:auto; padding:6px 8px; }
+#sidebar-footer { padding:10px; border-top:1px solid #3d3028; font-size:10px; color:var(--sidebar-text); opacity:0.45; text-align:center; flex-shrink:0; }
+
+.btn { border:none; cursor:pointer; font-family:'Noto Sans TC',sans-serif; font-size:12px; border-radius:5px; transition:all 0.18s; display:flex; align-items:center; gap:6px; padding:8px 12px; }
+.btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+.btn-primary:hover { background:#a0521a; }
+.btn-secondary { background:rgba(255,255,255,0.07); color:var(--sidebar-text); width:100%; justify-content:center; border:1px solid rgba(255,255,255,0.1); }
+.btn-secondary:hover { background:rgba(255,255,255,0.13); color:#e8d5b7; }
+.btn-backup, .btn-restore { flex:1; justify-content:center; font-size:11px; padding:7px 4px; border-radius:4px; border:1px solid rgba(255,255,255,0.1); }
+.btn-backup { background:rgba(139,69,19,0.25); color:#d4a870; }
+.btn-backup:hover { background:rgba(139,69,19,0.45); color:#e8c090; }
+.btn-restore { background:rgba(255,255,255,0.06); color:var(--sidebar-text); }
+.btn-restore:hover { background:rgba(255,255,255,0.13); color:#e8d5b7; }
+
+.nav-section-title { font-size:10px; color:var(--sidebar-text); opacity:0.45; letter-spacing:2px; text-transform:uppercase; padding:8px 8px 4px; margin-top:4px; }
+.collection-item { border-radius:6px; overflow:hidden; margin-bottom:3px; }
+.collection-header { display:flex; align-items:center; padding:9px 10px; cursor:pointer; color:var(--sidebar-text); border-radius:6px; gap:6px; transition:background 0.15s; user-select:none; }
+.collection-header:hover { background:var(--sidebar-hover); }
+.collection-icon { font-size:13px; }
+.collection-name { flex:1; font-size:12px; font-weight:500; }
+.collection-count { font-size:10px; background:rgba(255,255,255,0.1); padding:1px 6px; border-radius:10px; opacity:0.7; }
+.collection-arrow { font-size:10px; transition:transform 0.2s; opacity:0.5; }
+.collection-arrow.open { transform:rotate(90deg); }
+.collection-children { padding-left:10px; display:none; }
+.collection-children.open { display:block; }
+.coll-words-badge { font-size:10px; color:var(--sidebar-text); opacity:0.55; padding:2px 6px; border-radius:8px; background:rgba(255,255,255,0.05); display:inline-block; }
+.article-item { display:flex; align-items:center; padding:7px 10px; cursor:pointer; color:var(--sidebar-text); border-radius:4px; font-size:12px; gap:6px; transition:background 0.15s; position:relative; }
+.article-item:hover { background:var(--sidebar-hover); }
+.article-item.active { background:rgba(139,69,19,0.4); color:#e8d5b7; }
+.article-item-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.article-item-count { font-size:10px; opacity:0.45; white-space:nowrap; }
+.article-item .del-btn { display:none; background:none; border:none; color:#c0392b; cursor:pointer; font-size:13px; padding:0 2px; line-height:1; }
+.article-item:hover .del-btn { display:block; }
+.empty-state { text-align:center; color:var(--muted); font-size:11px; padding:20px 0; opacity:0.6; }
+
+/* ══ MAIN ══ */
+#main { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+
+/* ── Toolbar ── */
+#toolbar { background:var(--paper-warm); border-bottom:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; }
+#toolbar-top { display:flex; align-items:center; padding:7px 14px; gap:8px; min-height:46px; }
+#toolbar-tools { display:flex; align-items:center; padding:3px 10px 5px; gap:4px; border-top:1px solid var(--border); overflow-x:auto; scrollbar-width:none; }
+#toolbar-tools::-webkit-scrollbar { display:none; }
+
+#mob-menu-btn { display:none; background:none; border:none; font-size:20px; cursor:pointer; color:var(--ink); padding:4px 6px; border-radius:5px; flex-shrink:0; line-height:1; }
+#mob-menu-btn:active { background:var(--accent-faint); }
+
+#article-title-input { flex:1; min-width:0; font-family:'Noto Serif TC',serif; font-size:17px; font-weight:500; border:none; background:transparent; color:var(--ink); outline:none; padding:2px 0; }
+#article-title-input::placeholder { color:#c0b8a8; }
+
+#wc-display { display:flex; align-items:center; gap:10px; font-size:12px; color:var(--muted); flex-shrink:0; white-space:nowrap; }
+#wc-display .cn { font-weight:600; color:var(--accent); font-variant-numeric:tabular-nums; }
+#save-dot { font-size:11px; color:var(--success); opacity:0; transition:opacity 0.3s; }
+#save-dot.on { opacity:1; }
+
+.tool-btn { background:none; border:1px solid transparent; border-radius:4px; padding:5px 10px; font-size:12px; cursor:pointer; color:var(--muted); font-family:'Noto Sans TC',sans-serif; display:flex; align-items:center; gap:4px; transition:all 0.15s; white-space:nowrap; flex-shrink:0; }
+.tool-btn:hover { background:var(--accent-faint); border-color:var(--accent-light); color:var(--accent); }
+.tool-btn.active { background:var(--accent-faint); border-color:var(--accent-light); color:var(--accent); }
+.tb-div { width:1px; height:20px; background:var(--border); flex-shrink:0; }
+
+/* ── Editor ── */
+#editor-area { flex:1; overflow-y:auto; padding:36px 56px; display:flex; justify-content:center; }
+#editor-container { width:100%; max-width:700px; }
+#no-article { display:flex; flex-direction:column; align-items:center; justify-content:center; height:60vh; color:var(--muted); opacity:0.45; gap:12px; }
+#no-article .big-icon { font-size:44px; }
+#no-article p { font-size:14px; font-family:'Noto Serif TC',serif; font-style:italic; }
+#editor { width:100%; min-height:calc(100vh - 220px); font-family:'Noto Serif TC',serif; font-size:17px; line-height:2.1; border:none; background:transparent; color:var(--ink); outline:none; letter-spacing:0.03em; word-break:break-all; cursor:text; }
+#editor:empty::before { content:attr(data-placeholder); color:#ccc5b5; font-style:italic; pointer-events:none; }
+#editor p { margin:0; padding:0; min-height:1em; }
+#editor blockquote { margin:3px 0; padding:3px 0 3px 16px; border-left:3.5px solid var(--accent-light); color:#5a4a38; font-style:italic; background:linear-gradient(to right,rgba(196,149,106,0.08),transparent 70%); border-radius:0 4px 4px 0; min-height:1em; }
+
+/* ── Status bar ── */
+#statusbar { background:var(--paper-warm); border-top:1px solid var(--border); padding:4px 14px; display:flex; align-items:center; gap:12px; font-size:11px; color:var(--muted); flex-shrink:0; }
+
+/* ── History panel ── */
+#history-panel { width:0; overflow:hidden; background:var(--paper-warm); border-left:0px solid var(--border); transition:width 0.28s,border-width 0.28s; display:flex; flex-direction:column; flex-shrink:0; }
+#history-panel.open { width:230px; border-left-width:1px; }
+#history-panel-inner { width:230px; padding:12px; flex:1; overflow-y:auto; }
+#history-panel h4 { font-size:11px; font-weight:600; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; }
+.history-entry { background:#fff; border:1px solid var(--border); border-radius:6px; padding:9px; margin-bottom:7px; cursor:pointer; transition:border-color 0.15s; position:relative; }
+.history-entry:hover { border-color:var(--accent-light); }
+.history-time { font-size:10px; color:var(--muted); margin-bottom:3px; }
+.history-preview { font-size:12px; color:var(--ink); line-height:1.5; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.history-entry .del-btn { position:absolute; top:6px; right:6px; background:none; border:none; color:#c0392b; cursor:pointer; font-size:12px; opacity:0; transition:opacity 0.15s; }
+.history-entry:hover .del-btn { opacity:1; }
+
+/* ══ MODALS ══ */
+.modal-overlay { position:fixed; inset:0; background:rgba(26,20,16,0.55); display:flex; align-items:center; justify-content:center; z-index:500; opacity:0; pointer-events:none; transition:opacity 0.2s; }
+.modal-overlay.open { opacity:1; pointer-events:all; }
+.modal { background:var(--paper); border-radius:10px; padding:22px; width:440px; max-width:92vw; max-height:90dvh; overflow-y:auto; box-shadow:0 8px 40px var(--shadow); transform:translateY(12px); transition:transform 0.2s; }
+.modal-overlay.open .modal { transform:translateY(0); }
+.modal h3 { font-family:'Noto Serif TC',serif; font-size:16px; margin-bottom:14px; color:var(--ink); display:flex; align-items:center; gap:8px; }
+.modal label { display:block; font-size:12px; color:var(--muted); margin-bottom:4px; margin-top:11px; }
+.modal input, .modal select { width:100%; border:1px solid var(--border); border-radius:5px; padding:8px 10px; font-size:14px; font-family:'Noto Sans TC',sans-serif; background:#fff; color:var(--ink); outline:none; transition:border-color 0.2s; }
+.modal input:focus, .modal select:focus { border-color:var(--accent-light); }
+.modal-actions { display:flex; gap:8px; margin-top:18px; justify-content:flex-end; flex-wrap:wrap; }
+.btn-ok { background:var(--accent); color:#fff; border:none; border-radius:5px; padding:9px 20px; font-size:13px; cursor:pointer; font-family:'Noto Sans TC',sans-serif; }
+.btn-ok:hover { background:#a0521a; }
+.btn-cancel { background:none; color:var(--muted); border:1px solid var(--border); border-radius:5px; padding:9px 16px; font-size:13px; cursor:pointer; font-family:'Noto Sans TC',sans-serif; }
+.btn-cancel:hover { background:var(--accent-faint); }
+.export-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:6px; }
+
+/* ══ SCROLLBAR ══ */
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:#c4b49a; border-radius:3px; }
+
+/* ══ RESPONSIVE — TABLET ══ */
+@media (max-width:1024px) {
+  #sidebar { width:230px; min-width:230px; }
+  #editor-area { padding:28px 32px; }
+}
+
+/* ══ RESPONSIVE — MOBILE ══ */
+@media (max-width:767px) {
+  #sidebar-overlay { display:block; }
+  #sidebar {
+    position:fixed; top:0; left:0; bottom:0;
+    width:82vw; max-width:300px; min-width:unset;
+    transform:translateX(-110%);
+    box-shadow:4px 0 28px rgba(0,0,0,0.4);
+  }
+  #sidebar.mob-open { transform:translateX(0); }
+  #mob-menu-btn { display:flex; }
+  #toolbar-top { padding:6px 10px; min-height:44px; gap:6px; }
+  #article-title-input { font-size:15px; }
+  #wc-display { font-size:11px; gap:6px; }
+  #wc-words-grp, #wc-sep { display:none; }
+  #toolbar-tools { padding:3px 8px 5px; gap:3px; }
+  .tool-btn { padding:5px 8px; font-size:11px; }
+  .tb-div { display:none; }
+  #editor-area { padding:16px 16px 24px; }
+  #editor { font-size:16px; min-height:50vh; }
+  #history-panel.open { position:fixed; top:0; right:0; bottom:0; width:85vw !important; max-width:320px; z-index:300; border-left-width:1px; box-shadow:-4px 0 24px rgba(0,0,0,0.25); }
+  #history-panel-inner { width:100%; }
+  #statusbar { padding:3px 10px; font-size:10px; }
+  #status-time { display:none; }
+  .modal { padding:18px 14px; border-radius:12px; }
+  .modal input, .modal select { font-size:16px; padding:10px 12px; }
+  .export-grid { grid-template-columns:1fr !important; }
+  #toolbar-top { padding-top:max(6px, env(safe-area-inset-top)); }
+  #statusbar { padding-bottom:max(4px, env(safe-area-inset-bottom)); }
+}
+</style>
+</head>
+<body>
+
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- ══ SIDEBAR ══ -->
+<div id="sidebar">
+  <div id="sidebar-header">
+    <div id="app-title">墨</div>
+    <div id="app-subtitle">Writing Studio</div>
+  </div>
+  <div id="sidebar-actions">
+    <button class="btn btn-primary" onclick="newArticle()">✦ 新增文章</button>
+    <button class="btn btn-secondary" onclick="newCollection()">▤ 新增合集</button>
+    <div style="display:flex;gap:6px;margin-top:2px;">
+      <button class="btn btn-backup" onclick="exportBackup()">⬇ 備份資料</button>
+      <button class="btn btn-restore" onclick="document.getElementById('restore-input').click()">⬆ 載入備份</button>
+    </div>
+  </div>
+  <input type="file" id="restore-input" accept=".json" style="display:none" onchange="importBackup(event)">
+  <div id="sidebar-nav">
+    <div class="nav-section-title">文章 &amp; 合集</div>
+    <div id="nav-tree"></div>
+  </div>
+  <div id="sidebar-footer">寫作工作室 · 自動儲存至瀏覽器</div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div id="main">
+  <div id="toolbar">
+    <div id="toolbar-top">
+      <button id="mob-menu-btn" onclick="openSidebar()">☰</button>
+      <input id="article-title-input" type="text" placeholder="文章標題…" oninput="onTitleChange()">
+      <div id="wc-display">
+        <span>字 <span class="cn" id="wc-chars">0</span></span>
+        <span id="wc-sep" style="opacity:0.3">|</span>
+        <span id="wc-words-grp">詞 <span class="cn" id="wc-words">0</span></span>
+        <span id="save-dot">✓ 已儲存</span>
+      </div>
+    </div>
+    <div id="toolbar-tools">
+      <button class="tool-btn" onclick="insertIndent()" title="縮排兩格">⇥ 縮排</button>
+      <button class="tool-btn" id="btn-quote" onclick="toggleQuote()">❝ 引用</button>
+      <div class="tb-div"></div>
+      <button class="tool-btn" onclick="toggleHistory()">📋 歷史</button>
+      <button class="tool-btn" onclick="openMoveModal()">📁 合集</button>
+      <div class="tb-div"></div>
+      <button class="tool-btn" onclick="openExportModal()" style="color:#8b4513;border-color:#c4956a;background:#f0e6d8;">🖼 輸出圖片</button>
+    </div>
+  </div>
+
+  <div style="display:flex;flex:1;overflow:hidden;">
+    <div id="editor-area">
+      <div id="editor-container">
+        <div id="no-article">
+          <div class="big-icon">✦</div>
+          <p>請從左側選擇文章，或新增一篇。</p>
+        </div>
+        <div id="editor" contenteditable="true" spellcheck="false"
+          data-placeholder="開始書寫…"
+          oninput="onEditorInput()"
+          onkeydown="onEditorKeydown(event)"
+          onmouseup="updateQuoteBtn()"
+          onkeyup="updateQuoteBtn()"
+          style="display:none;"></div>
+      </div>
+    </div>
+    <div id="history-panel">
+      <div id="history-panel-inner">
+        <h4>版本歷史 <button class="tool-btn" style="padding:2px 6px;font-size:10px;" onclick="clearHistory()">清除</button></h4>
+        <div id="history-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="statusbar">
+    <span id="status-article">未選擇文章</span>
+    <span style="margin-left:auto;" id="status-collection"></span>
+    <span id="status-time"></span>
+  </div>
+</div>
+
+<!-- ══ MODAL: 新增文章 ══ -->
+<div class="modal-overlay" id="modal-new-article">
+  <div class="modal">
+    <h3>✦ 新增文章</h3>
+    <label>文章標題</label>
+    <input id="inp-article-name" type="text" placeholder="請輸入標題…" onkeydown="if(event.key==='Enter')confirmNewArticle()">
+    <label>加入合集（可選）</label>
+    <select id="inp-article-coll"><option value="">— 不加入合集 —</option></select>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-new-article')">取消</button>
+      <button class="btn-ok" onclick="confirmNewArticle()">建立</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: 新增合集 ══ -->
+<div class="modal-overlay" id="modal-new-collection">
+  <div class="modal">
+    <h3>▤ 新增合集</h3>
+    <label>合集名稱</label>
+    <input id="inp-coll-name" type="text" placeholder="請輸入合集名稱…" onkeydown="if(event.key==='Enter')confirmNewCollection()">
+    <label>圖示（Emoji）</label>
+    <input id="inp-coll-icon" type="text" placeholder="📖" maxlength="2">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-new-collection')">取消</button>
+      <button class="btn-ok" onclick="confirmNewCollection()">建立</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: 移至合集 ══ -->
+<div class="modal-overlay" id="modal-move">
+  <div class="modal">
+    <h3>📁 移至合集</h3>
+    <label>選擇目標合集</label>
+    <select id="inp-move-coll"><option value="">— 移出合集 —</option></select>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-move')">取消</button>
+      <button class="btn-ok" onclick="confirmMove()">確認</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: 輸出圖片 ══ -->
+<div class="modal-overlay" id="modal-export">
+  <div class="modal" style="width:500px;">
+    <h3>🖼 輸出圖片</h3>
+    <div class="export-grid">
+      <div><label>樣式主題</label>
+        <select id="exp-theme">
+          <option value="warm">暖紙米黃</option><option value="dark">深夜墨黑</option>
+          <option value="cloud">霧白簡約</option><option value="bamboo">竹青古典</option>
+        </select>
+      </div>
+      <div><label>字體大小</label>
+        <select id="exp-fontsize">
+          <option value="36">小（36px）</option><option value="42" selected>中（42px）</option><option value="50">大（50px）</option>
+        </select>
+      </div>
+      <div><label>圖片比例</label>
+        <select id="exp-ratio">
+          <option value="3:4" selected>3:4 通用直式</option><option value="4:5">4:5 Instagram</option>
+          <option value="1:1">1:1 正方形</option><option value="9:16">9:16 限時動態</option>
+        </select>
+      </div>
+      <div><label>顯示頁碼</label>
+        <select id="exp-pagenum"><option value="yes" selected>顯示</option><option value="no">不顯示</option></select>
+      </div>
+    </div>
+    <div id="exp-preview-area" style="margin-top:14px;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:#e8e0d4;display:flex;align-items:center;justify-content:center;min-height:110px;">
+      <span style="color:#aaa;font-size:12px;">點擊「預覽」查看效果</span>
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;">
+      <span id="exp-page-info">—</span>
+      <span style="margin-left:auto;">寬度 1080px · 高解析度</span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-export')">取消</button>
+      <button class="btn-cancel" onclick="previewExport()">預覽</button>
+      <button class="btn-ok" id="exp-dl-btn" onclick="downloadImages()" disabled>⬇ 下載全部</button>
+    </div>
+  </div>
+</div>
+
+<!-- Export progress -->
+<div id="exp-progress" style="display:none;position:fixed;inset:0;background:rgba(26,20,16,0.7);z-index:600;align-items:center;justify-content:center;">
+  <div style="background:var(--paper);border-radius:12px;padding:30px 36px;text-align:center;min-width:240px;">
+    <div style="font-size:30px;margin-bottom:10px;">🖼</div>
+    <div style="font-family:'Noto Serif TC',serif;font-size:15px;margin-bottom:14px;">正在產生圖片…</div>
+    <div style="background:#e8ddd0;border-radius:100px;height:7px;overflow:hidden;">
+      <div id="exp-bar" style="background:var(--accent);height:100%;width:0%;transition:width 0.3s;border-radius:100px;"></div>
+    </div>
+    <div id="exp-bar-txt" style="font-size:12px;color:var(--muted);margin-top:8px;">0 / 0</div>
+  </div>
+</div>
+
+<script>
+/* ── STATE ── */
+let state = { collections:[], articles:[], currentArticleId:null };
+
+function saveState(){ localStorage.setItem('moji_v2', JSON.stringify(state)); }
+function loadState(){
+  try {
+    const raw = localStorage.getItem('moji_v2') || localStorage.getItem('moji_state');
+    if(raw) state = JSON.parse(raw);
+  } catch(e){}
+}
+loadState();
+
+(function(){
+  if(state.articles.length>0 && !sessionStorage.getItem('moji_r')){
+    sessionStorage.setItem('moji_r','1');
+    setTimeout(()=>showToast('💾 提醒：記得定期點「備份資料」儲存到電腦',5000),1500);
+  }
+})();
+
+/* ── MOBILE SIDEBAR ── */
+function openSidebar(){
+  document.getElementById('sidebar').classList.add('mob-open');
+  document.getElementById('sidebar-overlay').classList.add('open');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('mob-open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+/* ── RENDER NAV ── */
+let openColls={};
+function renderNav(){
+  const tree=document.getElementById('nav-tree');
+  tree.innerHTML='';
+  state.collections.forEach(coll=>{
+    const arts=state.articles.filter(a=>a.collectionId===coll.id);
+    const totalW=arts.reduce((s,a)=>s+countChars(a.content),0);
+    const wrap=document.createElement('div'); wrap.className='collection-item';
+    const hdr=document.createElement('div'); hdr.className='collection-header';
+    hdr.innerHTML=`<span class="collection-icon">${coll.icon||'📖'}</span><span class="collection-name">${esc(coll.name)}</span><span class="collection-count">${arts.length}</span><span class="collection-arrow${openColls[coll.id]?' open':''}" id="arr-${coll.id}">▶</span>`;
+    hdr.onclick=()=>toggleColl(coll.id);
+    const kids=document.createElement('div');
+    kids.className='collection-children'+(openColls[coll.id]?' open':'');
+    kids.id='kids-'+coll.id;
+    const badge=document.createElement('div'); badge.style.padding='2px 10px 4px';
+    badge.innerHTML=`<span class="coll-words-badge">共 ${totalW.toLocaleString()} 字</span>`;
+    kids.appendChild(badge);
+    if(arts.length===0){ const e=document.createElement('div'); e.className='empty-state'; e.style.fontSize='11px'; e.textContent='尚無文章'; kids.appendChild(e); }
+    else arts.forEach(a=>kids.appendChild(makeNode(a)));
+    wrap.appendChild(hdr); wrap.appendChild(kids); tree.appendChild(wrap);
+  });
+  const uncat=state.articles.filter(a=>!a.collectionId);
+  if(state.collections.length>0&&uncat.length>0){ const sep=document.createElement('div'); sep.className='nav-section-title'; sep.textContent='未分類'; tree.appendChild(sep); }
+  uncat.forEach(a=>tree.appendChild(makeNode(a)));
+}
+
+function makeNode(a){
+  const el=document.createElement('div');
+  el.className='article-item'+(a.id===state.currentArticleId?' active':'');
+  const words=countChars(a.content);
+  el.innerHTML=`<span style="font-size:11px;opacity:0.4">✦</span><span class="article-item-name">${esc(a.title||'無標題')}</span><span class="article-item-count">${words}</span><button class="del-btn" title="刪除">✕</button>`;
+  el.querySelector('.del-btn').onclick=e=>{e.stopPropagation();deleteArticle(a.id);};
+  el.onclick=()=>{closeSidebar();openArticle(a.id);};
+  return el;
+}
+
+function toggleColl(id){
+  openColls[id]=!openColls[id];
+  const kids=document.getElementById('kids-'+id);
+  const arr=document.getElementById('arr-'+id);
+  if(kids) kids.classList.toggle('open',openColls[id]);
+  if(arr) arr.classList.toggle('open',openColls[id]);
+}
+
+/* ── ARTICLE OPS ── */
+function openArticle(id){
+  if(state.currentArticleId) saveCurrentContent();
+  state.currentArticleId=id;
+  const a=getArticle(id); if(!a) return;
+  document.getElementById('article-title-input').value=a.title||'';
+  const ed=document.getElementById('editor');
+  let html=a.content||'';
+  if(html && !/<[a-z][\s\S]*>/i.test(html))
+    html=html.split('\n').map(l=>`<p>${l||'<br>'}</p>`).join('');
+  ed.innerHTML=html;
+  if(!ed.firstChild){const p=document.createElement('p');p.appendChild(document.createElement('br'));ed.appendChild(p);}
+  ed.style.display='';
+  document.getElementById('no-article').style.display='none';
+  updateWordCount(); updateStatusBar(); renderNav(); renderHistory();
+}
+
+function saveCurrentContent(){
+  const id=state.currentArticleId; if(!id) return;
+  const a=getArticle(id); if(!a) return;
+  a.content=document.getElementById('editor').innerHTML;
+  a.title=document.getElementById('article-title-input').value||'無標題';
+  saveState();
+}
+
+function deleteArticle(id){
+  if(!confirm('確定要刪除這篇文章嗎？')) return;
+  state.articles=state.articles.filter(a=>a.id!==id);
+  if(state.currentArticleId===id){
+    state.currentArticleId=null;
+    const ed=document.getElementById('editor');
+    ed.innerHTML=''; ed.style.display='none';
+    document.getElementById('no-article').style.display='';
+    document.getElementById('article-title-input').value='';
+  }
+  saveState(); renderNav();
+}
+
+function getArticle(id){ return state.articles.find(a=>a.id===id); }
+
+/* ── NEW ARTICLE / COLLECTION ── */
+function newArticle(){
+  fillSel('inp-article-coll','— 不加入合集 —');
+  document.getElementById('inp-article-name').value='';
+  openModal('modal-new-article');
+  setTimeout(()=>document.getElementById('inp-article-name').focus(),80);
+}
+function confirmNewArticle(){
+  const name=document.getElementById('inp-article-name').value.trim()||'無標題';
+  const collId=document.getElementById('inp-article-coll').value||null;
+  const a={id:uid(),title:name,content:'',collectionId:collId,history:[]};
+  state.articles.push(a); saveState();
+  closeModal('modal-new-article');
+  if(collId) openColls[collId]=true;
+  renderNav(); openArticle(a.id);
+}
+
+function newCollection(){
+  document.getElementById('inp-coll-name').value='';
+  document.getElementById('inp-coll-icon').value='';
+  openModal('modal-new-collection');
+  setTimeout(()=>document.getElementById('inp-coll-name').focus(),80);
+}
+function confirmNewCollection(){
+  const name=document.getElementById('inp-coll-name').value.trim(); if(!name) return;
+  const icon=document.getElementById('inp-coll-icon').value.trim()||'📖';
+  const c={id:uid(),name,icon};
+  state.collections.push(c); openColls[c.id]=true;
+  saveState(); closeModal('modal-new-collection'); renderNav();
+}
+
+function openMoveModal(){
+  if(!state.currentArticleId) return alert('請先開啟一篇文章');
+  fillSel('inp-move-coll','— 移出合集 —');
+  const a=getArticle(state.currentArticleId);
+  if(a) document.getElementById('inp-move-coll').value=a.collectionId||'';
+  openModal('modal-move');
+}
+function confirmMove(){
+  const a=getArticle(state.currentArticleId); if(!a) return;
+  a.collectionId=document.getElementById('inp-move-coll').value||null;
+  saveState(); closeModal('modal-move'); renderNav(); updateStatusBar();
+}
+
+function fillSel(id,placeholder){
+  const sel=document.getElementById(id);
+  sel.innerHTML=`<option value="">${placeholder}</option>`;
+  state.collections.forEach(c=>{
+    const o=document.createElement('option'); o.value=c.id; o.textContent=`${c.icon} ${c.name}`; sel.appendChild(o);
+  });
+}
+
+/* ── EDITOR ── */
+let saveTimer;
+function onEditorInput(){
+  updateWordCount(); updateQuoteBtn();
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{ saveCurrentContent(); pushHistory(); showSaveDot(); renderNav(); },800);
+}
+function onTitleChange(){
+  const a=getArticle(state.currentArticleId); if(a) a.title=document.getElementById('article-title-input').value;
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{ saveState(); showSaveDot(); renderNav(); },600);
+}
+function onEditorKeydown(e){
+  if(e.key==='Tab'){e.preventDefault();insertIndent();}
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) setTimeout(updateQuoteBtn,0);
+}
+function insertIndent(){
+  const ed=document.getElementById('editor'); if(ed.style.display==='none') return;
+  const sel=window.getSelection(); if(!sel.rangeCount) return;
+  const range=sel.getRangeAt(0); range.deleteContents();
+  const t=document.createTextNode('\u3000\u3000'); range.insertNode(t);
+  range.setStartAfter(t); range.setEndAfter(t);
+  sel.removeAllRanges(); sel.addRange(range); onEditorInput();
+}
+function toggleQuote(){
+  const ed=document.getElementById('editor'); if(ed.style.display==='none') return;
+  ed.focus();
+  const sel=window.getSelection(); if(!sel.rangeCount) return;
+  let node=sel.getRangeAt(0).startContainer;
+  while(node&&node.parentNode!==ed) node=node.parentNode;
+  if(!node||node===ed){
+    const bq=document.createElement('blockquote'); bq.appendChild(document.createElement('br')); ed.appendChild(bq);
+    const r=document.createRange(); r.setStart(bq,0); r.collapse(true); sel.removeAllRanges(); sel.addRange(r);
+  } else if(node.tagName==='BLOCKQUOTE'){
+    const p=document.createElement('p'); p.innerHTML=node.innerHTML||'<br>'; ed.replaceChild(p,node);
+    const r=document.createRange(); r.selectNodeContents(p); r.collapse(false); sel.removeAllRanges(); sel.addRange(r);
+  } else {
+    const bq=document.createElement('blockquote'); bq.innerHTML=node.innerHTML||'<br>'; ed.replaceChild(bq,node);
+    const r=document.createRange(); r.selectNodeContents(bq); r.collapse(false); sel.removeAllRanges(); sel.addRange(r);
+  }
+  onEditorInput(); updateQuoteBtn();
+}
+function updateQuoteBtn(){
+  const btn=document.getElementById('btn-quote'); if(!btn) return;
+  const sel=window.getSelection();
+  if(!sel||!sel.rangeCount){btn.classList.remove('active');return;}
+  let node=sel.getRangeAt(0).startContainer;
+  const ed=document.getElementById('editor');
+  while(node&&node.parentNode!==ed) node=node.parentNode;
+  btn.classList.toggle('active',!!(node&&node.tagName==='BLOCKQUOTE'));
+}
+function updateWordCount(){
+  const text=document.getElementById('editor').innerText||'';
+  document.getElementById('wc-chars').textContent=countChars(text).toLocaleString();
+  document.getElementById('wc-words').textContent=countWords(text).toLocaleString();
+}
+function countChars(t){ return (t||'').replace(/\s/g,'').length; }
+function countWords(t){
+  if(!t) return 0;
+  return ((t.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g)||[]).length) + ((t.match(/[a-zA-Z]+/g)||[]).length);
+}
+function showSaveDot(){
+  const el=document.getElementById('save-dot'); el.classList.add('on');
+  setTimeout(()=>el.classList.remove('on'),1500);
+}
+function updateStatusBar(){
+  const a=getArticle(state.currentArticleId);
+  if(!a){document.getElementById('status-article').textContent='未選擇文章';document.getElementById('status-collection').textContent='';return;}
+  document.getElementById('status-article').textContent=a.title||'無標題';
+  if(a.collectionId){ const c=state.collections.find(c=>c.id===a.collectionId); document.getElementById('status-collection').textContent=c?`${c.icon} ${c.name}`:''; }
+  else document.getElementById('status-collection').textContent='';
+}
+
+/* ── HISTORY ── */
+function pushHistory(){
+  const a=getArticle(state.currentArticleId); if(!a) return;
+  const content=document.getElementById('editor').innerHTML;
+  if(!content.trim()||content==='<br>'||content==='<p><br></p>') return;
+  if(a.history.length>0&&a.history[a.history.length-1].content===content) return;
+  a.history.push({time:Date.now(),content});
+  if(a.history.length>50) a.history.shift();
+  saveState(); renderHistory();
+}
+function renderHistory(){
+  const list=document.getElementById('history-list'); list.innerHTML='';
+  const a=getArticle(state.currentArticleId);
+  if(!a||a.history.length===0){list.innerHTML='<div class="empty-state">尚無版本歷史</div>';return;}
+  [...a.history].reverse().forEach((h,i)=>{
+    const el=document.createElement('div'); el.className='history-entry';
+    const d=new Date(h.time);
+    const prev=h.content.replace(/<[^>]+>/g,'').slice(0,80);
+    el.innerHTML=`<div class="history-time">${d.toLocaleDateString('zh-TW')} ${d.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})}</div><div class="history-preview">${esc(prev)}</div><button class="del-btn" title="刪除">✕</button>`;
+    el.onclick=()=>restoreHistory(h.content);
+    el.querySelector('.del-btn').onclick=e=>{e.stopPropagation();a.history.splice(a.history.length-1-i,1);saveState();renderHistory();};
+    list.appendChild(el);
+  });
+}
+function restoreHistory(content){
+  if(!confirm('確定還原到此版本？目前內容將被取代。')) return;
+  document.getElementById('editor').innerHTML=content; onEditorInput();
+}
+function clearHistory(){
+  const a=getArticle(state.currentArticleId); if(!a) return;
+  if(!confirm('確定清除所有歷史版本？')) return;
+  a.history=[]; saveState(); renderHistory();
+}
+let historyOpen=false;
+function toggleHistory(){
+  historyOpen=!historyOpen;
+  document.getElementById('history-panel').classList.toggle('open',historyOpen);
+  if(historyOpen) renderHistory();
+}
+
+/* ── MODALS ── */
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});
+});
+
+/* ── BACKUP / RESTORE ── */
+function exportBackup(){
+  saveCurrentContent();
+  const now=new Date(), pad=n=>String(n).padStart(2,'0');
+  const ts=`${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+  const blob=new Blob([JSON.stringify({version:2,exportedAt:now.toISOString(),data:state},null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('a'); link.href=url; link.download=`墨跡備份_${ts}.json`; link.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  showToast(`✓ 已備份 ${state.articles.length} 篇文章`);
+}
+function importBackup(event){
+  const file=event.target.files[0]; if(!file) return;
+  event.target.value='';
+  const reader=new FileReader();
+  reader.onload=e=>{
+    let payload;
+    try{payload=JSON.parse(e.target.result);}catch{return alert('❌ 檔案格式錯誤');}
+    if(!payload.data||!Array.isArray(payload.data.articles)) return alert('❌ 無法辨識此備份檔');
+    const inc=payload.data;
+    const info=`備份日期：${payload.exportedAt?new Date(payload.exportedAt).toLocaleString('zh-TW'):'未知'}\n共 ${inc.articles.length} 篇文章\n\n【確定】覆蓋現有資料\n【取消】合併追加`;
+    if(confirm(info)){
+      state={...inc,currentArticleId:null};
+    } else {
+      const eIds=new Set(state.articles.map(a=>a.id));
+      const eCIds=new Set(state.collections.map(c=>c.id));
+      state.articles.push(...inc.articles.filter(a=>!eIds.has(a.id)));
+      state.collections.push(...(inc.collections||[]).filter(c=>!eCIds.has(c.id)));
+    }
+    saveState(); renderNav(); updateStatusBar(); updateWordCount();
+    if(state.currentArticleId&&!getArticle(state.currentArticleId)){
+      state.currentArticleId=null;
+      const ed=document.getElementById('editor'); ed.innerHTML=''; ed.style.display='none';
+      document.getElementById('no-article').style.display='';
+      document.getElementById('article-title-input').value='';
+    }
+    showToast('✓ 備份已載入');
+  };
+  reader.readAsText(file,'utf-8');
+}
+
+/* ── IMAGE EXPORT ── */
+const THEMES={
+  warm:{bg:'#f5f0e8',text:'#1a1410',title:'#8b4513',line:'#d4c4a8',page:'#a89070',accent:'#c4956a'},
+  dark:{bg:'#1a1714',text:'#e8ddd0',title:'#c4956a',line:'#3d3028',page:'#8a7a68',accent:'#8b4513'},
+  cloud:{bg:'#f8f8f6',text:'#2a2a2a',title:'#555',line:'#ddd',page:'#aaa',accent:'#888'},
+  bamboo:{bg:'#f0ede0',text:'#2d3a1e',title:'#4a6741',line:'#b8c8a0',page:'#7a9468',accent:'#5a7a50'},
+};
+const RATIOS={'3:4':[3,4],'4:5':[4,5],'1:1':[1,1],'9:16':[9,16]};
+
+function openExportModal(){
+  if(!state.currentArticleId) return alert('請先開啟一篇文章');
+  if(!(document.getElementById('editor').innerText||'').trim()) return alert('文章內容為空');
+  document.getElementById('exp-page-info').textContent='—';
+  document.getElementById('exp-dl-btn').disabled=true;
+  document.getElementById('exp-preview-area').innerHTML='<span style="color:#aaa;font-size:12px;">點擊「預覽」查看效果</span>';
+  openModal('modal-export');
+}
+function getExpSettings(){
+  const theme=THEMES[document.getElementById('exp-theme').value];
+  const fontSize=parseInt(document.getElementById('exp-fontsize').value);
+  const [rw,rh]=RATIOS[document.getElementById('exp-ratio').value];
+  const showPage=document.getElementById('exp-pagenum').value==='yes';
+  const W=1080,H=Math.round(W*rh/rw);
+  return{theme,fontSize,W,H,showPage};
+}
+function splitPages(content,s){
+  const{fontSize,W,H}=s;
+  const PAD=Math.round(W*0.09),TITLE_H=Math.round(fontSize*2.8),LINE_H=Math.round(fontSize*1.9),FOOTER_H=Math.round(fontSize*1.6);
+  const avail=H-PAD*2-TITLE_H-FOOTER_H, lpp=Math.max(1,Math.floor(avail/LINE_H));
+  const tmp=document.createElement('canvas'); tmp.width=W; tmp.height=H;
+  const ctx=tmp.getContext('2d'); ctx.font=`${fontSize}px "Noto Serif TC",serif`;
+  const cW=W-PAD*2, wrapped=[];
+  content.split('\n').forEach(raw=>{
+    if(!raw.trim()){wrapped.push('');return;}
+    let line='';
+    for(let i=0;i<raw.length;i++){const t=line+raw[i];if(ctx.measureText(t).width>cW){wrapped.push(line);line=raw[i];}else line=t;}
+    if(line) wrapped.push(line);
+  });
+  const pgCount=Math.min(10,Math.max(1,Math.ceil(wrapped.length/lpp)));
+  const lppF=Math.ceil(wrapped.length/pgCount);
+  const pages=[];
+  for(let p=0;p<pgCount;p++) pages.push(wrapped.slice(p*lppF,(p+1)*lppF));
+  return{pages,LINE_H,PAD,TITLE_H,FOOTER_H};
+}
+function drawPage(canvas,lines,pi,total,s,sd){
+  const{theme,fontSize,W,H,showPage}=s,{LINE_H,PAD,TITLE_H,FOOTER_H}=sd;
+  const ctx=canvas.getContext('2d'), a=getArticle(state.currentArticleId);
+  ctx.fillStyle=theme.bg; ctx.fillRect(0,0,W,H);
+  ctx.save(); ctx.globalAlpha=0.018;
+  for(let i=0;i<1200;i++){ctx.fillStyle='#000';ctx.fillRect(Math.random()*W,Math.random()*H,1.5,1.5);}
+  ctx.restore();
+  ctx.fillStyle=theme.accent; ctx.fillRect(PAD,PAD,W-PAD*2,3);
+  const titleY=PAD+Math.round(fontSize*1.8); ctx.fillStyle=theme.title;
+  if(pi===0){ctx.font=`700 ${Math.round(fontSize*1.15)}px "Noto Serif TC",serif`;ctx.textBaseline='alphabetic';ctx.fillText(a.title||'無標題',PAD,titleY);}
+  else{ctx.font=`300 ${Math.round(fontSize*0.75)}px "Noto Sans TC",sans-serif`;ctx.globalAlpha=0.55;ctx.fillText(a.title||'無標題',PAD,titleY);ctx.globalAlpha=1;}
+  const lineY=titleY+Math.round(fontSize*0.55);
+  ctx.strokeStyle=theme.line; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(PAD,lineY); ctx.lineTo(W-PAD,lineY); ctx.stroke();
+  ctx.fillStyle=theme.text; ctx.font=`${fontSize}px "Noto Serif TC",serif`; ctx.textBaseline='alphabetic';
+  const cy=lineY+LINE_H*0.9; lines.forEach((l,i)=>{if(l!=='')ctx.fillText(l,PAD,cy+i*LINE_H);});
+  const bly=H-PAD-FOOTER_H+6; ctx.strokeStyle=theme.line; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(PAD,bly); ctx.lineTo(W-PAD,bly); ctx.stroke();
+  const fy=H-PAD-Math.round(FOOTER_H*0.1); ctx.fillStyle=theme.page; ctx.font=`300 ${Math.round(fontSize*0.6)}px "Noto Sans TC",sans-serif`; ctx.textBaseline='alphabetic'; ctx.globalAlpha=0.5;
+  ctx.fillText('Writing Studio',PAD,fy); ctx.globalAlpha=1;
+  if(showPage&&total>1){ctx.textAlign='right';ctx.fillStyle=theme.page;ctx.fillText(`${pi+1} / ${total}`,W-PAD,fy);ctx.textAlign='left';}
+  ctx.fillStyle=theme.accent; ctx.beginPath(); ctx.arc(W/2,H-PAD-Math.round(FOOTER_H*0.1)-Math.round(fontSize*0.4),3,0,Math.PI*2); ctx.fill();
+}
+async function previewExport(){
+  const content=(document.getElementById('editor').innerText||'').trim(); if(!content) return;
+  const s=getExpSettings(); await document.fonts.ready;
+  const sd=splitPages(content,s);
+  const a=getArticle(state.currentArticleId);
+  document.getElementById('exp-page-info').textContent=`共 ${sd.pages.length} 張 · ${countChars(a.content).toLocaleString()} 字`;
+  document.getElementById('exp-dl-btn').disabled=false;
+  const{W,H}=s; const canvas=document.createElement('canvas'); canvas.width=W; canvas.height=H;
+  drawPage(canvas,sd.pages[0],0,sd.pages.length,s,sd);
+  const scale=280/W; const prev=document.createElement('canvas');
+  prev.width=Math.round(W*scale); prev.height=Math.round(H*scale);
+  prev.style.display='block'; prev.style.borderRadius='4px';
+  prev.getContext('2d').drawImage(canvas,0,0,prev.width,prev.height);
+  const area=document.getElementById('exp-preview-area'); area.innerHTML=''; area.appendChild(prev);
+}
+async function downloadImages(){
+  const a=getArticle(state.currentArticleId); if(!a) return;
+  const content=document.getElementById('editor').innerText||'';
+  const s=getExpSettings(); await document.fonts.ready;
+  const sd=splitPages(content,s); const total=sd.pages.length;
+  closeModal('modal-export');
+  const overlay=document.getElementById('exp-progress'); overlay.style.display='flex';
+  const bar=document.getElementById('exp-bar'),txt=document.getElementById('exp-bar-txt');
+  const{W,H}=s; const safe=(a.title||'文章').replace(/[\\/:*?"<>|]/g,'');
+  for(let i=0;i<total;i++){
+    txt.textContent=`${i+1} / ${total}`; bar.style.width=`${Math.round(i/total*100)}%`;
+    await new Promise(r=>setTimeout(r,30));
+    const canvas=document.createElement('canvas'); canvas.width=W; canvas.height=H;
+    drawPage(canvas,sd.pages[i],i,total,s,sd);
+    const fname=total>1?`${safe}_第${i+1}張.png`:`${safe}.png`;
+    await new Promise(r=>{
+      canvas.toBlob(blob=>{
+        const url=URL.createObjectURL(blob); const lnk=document.createElement('a'); lnk.href=url; lnk.download=fname; lnk.click();
+        setTimeout(()=>URL.revokeObjectURL(url),1000); r();
+      },'image/png');
+    });
+    await new Promise(r=>setTimeout(r,150));
+  }
+  bar.style.width='100%'; txt.textContent=`完成！共 ${total} 張`;
+  setTimeout(()=>{overlay.style.display='none';},1200);
+}
+
+/* ── TOAST ── */
+function showToast(msg,dur=3000){
+  let t=document.getElementById('moji-toast');
+  if(!t){t=document.createElement('div');t.id='moji-toast';t.style.cssText='position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(16px);background:#2c2420;color:#e8d5b7;padding:10px 20px;border-radius:8px;font-size:13px;font-family:"Noto Sans TC",sans-serif;box-shadow:0 4px 20px rgba(0,0,0,0.35);z-index:999;opacity:0;transition:opacity 0.25s,transform 0.25s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center;';document.body.appendChild(t);}
+  t.textContent=msg; t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)';
+  clearTimeout(t._t);
+  t._t=setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(-50%) translateY(10px)';},dur);
+}
+
+/* ── UTILS ── */
+function uid(){ return Math.random().toString(36).slice(2)+Date.now().toString(36); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function updateClock(){ const el=document.getElementById('status-time'); if(el) el.textContent=new Date().toLocaleTimeString('zh-TW'); }
+setInterval(updateClock,1000); updateClock();
+
+/* ── INIT ── */
+renderNav(); updateWordCount(); updateStatusBar();
+</script>
+</body>
+</html>
